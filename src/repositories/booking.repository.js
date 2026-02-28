@@ -1,3 +1,5 @@
+const pool = require('../config/database');
+
 const createBooking = async (connection, eventId, userId) => {
     const [result] = await connection.query(
         `INSERT INTO bookings (event_id, user_id, status)
@@ -26,8 +28,27 @@ const cancelBooking = async (connection, bookingId) => {
     );
 };
 
+const getBookingsByUserId = async (userId) => {
+    const [rows] = await pool.query(`
+        SELECT 
+            b.id AS booking_id,
+            b.status,
+            b.created_at,
+            e.id AS event_id,
+            e.name AS event_name,
+            e.event_date
+        FROM bookings b
+        JOIN events e ON b.event_id = e.id
+        WHERE b.user_id = ?
+        ORDER BY b.created_at DESC
+    `, [userId]);
+
+    return rows;
+};
+
 module.exports = {
     createBooking,
     getBookingForUpdate,
-    cancelBooking
+    cancelBooking,
+    getBookingsByUserId
 };

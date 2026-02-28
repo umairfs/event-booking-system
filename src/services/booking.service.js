@@ -205,7 +205,34 @@ const cancelEventBooking = async (bookingId) => {
     }
 };
 
+const getUserBookings = async (userId) => {
+    try {
+        const bookings = await bookingRepository.getBookingsByUserId(userId);
+
+        return {
+            status: 200,
+            data: bookings.map(b => ({
+                bookingId: b.booking_id,
+                eventId: b.event_id,
+                eventName: b.event_name,
+                eventDate: b.event_date,
+                status: b.status,
+                createdAt: b.created_at
+            }))
+        };
+
+    } catch (error) {
+        console.error('Fetch user bookings error:', error);
+
+        return {
+            status: 500,
+            message: 'Internal Server Error'
+        };
+    }
+};
+
 module.exports = {
     bookEvent,
-    cancelEventBooking
+    cancelEventBooking,
+    getUserBookings
 };

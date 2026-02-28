@@ -6,6 +6,14 @@ jest.mock('../services/event.service', () => ({
     getEvents: jest.fn()
 }));
 
+beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterAll(() => {
+    console.error.mockRestore();
+});
+
 const eventService = require('../services/event.service');
 
 describe('GET /events', () => {
