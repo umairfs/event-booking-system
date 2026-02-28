@@ -1,0 +1,5 @@
+# Adding git ignore files and folders
+node_modules/
+.env
+coverage/
+dist/
