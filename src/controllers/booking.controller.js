@@ -2,8 +2,8 @@ const bookingService = require('../services/booking.service');
 
 const bookEvent = async (req, res) => {
     const eventId = req.params.id;
-    // const userId = req.user.id;
-    const { userId } = req.body;
+    const userId = req.user.id;
+    // const { userId } = req.body;
 
     if (!userId) {
         return res.status(400).json({

@@ -10,8 +10,6 @@ const authenticate = require("../middlewares/auth.middleware");
 router.post('/events/:id/book', 
     bookingRateLimiter,
     authenticate,
-    bookEventValidation,
-    validate, 
     bookingController.bookEvent
 );
 

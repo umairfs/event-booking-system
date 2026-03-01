@@ -9,87 +9,86 @@ const bookEvent = async (eventId, userId) => {
     try {
         await connection.beginTransaction();
 
-        //  Lock event row
+        // Lock event row
         const event = await eventRepository.getEventForUpdate(connection, eventId);
 
         if (!event) {
-            await auditRepository.logAudit(
-                connection,
-                'BOOK',
-                eventId,
-                null,
-                userId,
-                'FAILURE',
-                'Event not found'
-            );
-
             await connection.rollback();
-
             return { status: 404, message: 'Event not found' };
         }
 
-        //  Check capacity
+        // Check capacity
         if (event.booked_count >= event.total_capacity) {
-            await auditRepository.logAudit(
-                connection,
-                'BOOK',
-                eventId,
-                null,
-                userId,
-                'FAILURE',
-                'Event sold out'
-            );
-
             await connection.rollback();
-
             return { status: 409, message: 'Event sold out' };
         }
 
-        let bookingId;
-
-        try {
-            //  Insert booking
-            bookingId = await bookingRepository.createBooking(
+        // NEW: Check existing booking
+        const existingBooking =
+            await bookingRepository.getBookingByEventAndUser(
                 connection,
                 eventId,
                 userId
             );
-        } catch (error) {
-            //  Handle duplicate booking
-            if (error.code === 'ER_DUP_ENTRY') {
-                await auditRepository.logAudit(
-                    connection,
-                    'BOOK',
-                    eventId,
-                    null,
-                    userId,
-                    'FAILURE',
-                    'User already booked this event'
-                );
 
+        let bookingId;
+
+        if (existingBooking) {
+
+            if (existingBooking.status === 'CONFIRMED') {
                 await connection.rollback();
-
                 return {
                     status: 400,
                     message: 'User already booked this event'
                 };
             }
 
-            throw error; //ethrow unexpected error
+            // If CANCELLED → Reactivate booking
+            if (existingBooking.status === 'CANCELLED') {
+
+                await bookingRepository.reactivateBooking(
+                    connection,
+                    existingBooking.id
+                );
+
+                await eventRepository.incrementBookedCount(
+                    connection,
+                    eventId
+                );
+
+                bookingId = existingBooking.id;
+
+                // Add audit entry
+                await auditRepository.logAudit(
+                    connection,
+                    'REBOOK',
+                    eventId,
+                    bookingId,
+                    userId,
+                    'SUCCESS',
+                    'Booking reactivated successfully'
+                );
+
+                await connection.commit();
+
+                return {
+                    status: 200,
+                    message: 'Booking successful (re-activated)',
+                    bookingId
+                };
+            }
         }
 
-        //  Increment capacity
-        await eventRepository.incrementBookedCount(connection, eventId);
-
-        //  Log success
-        await auditRepository.logAudit(
+        // If no previous booking → Insert new
+        bookingId = await bookingRepository.createBooking(
             connection,
-            'BOOK',
             eventId,
-            bookingId,
-            userId,
-            'SUCCESS',
-            'Booking successful'
+            userId
+        );
+
+        await eventRepository.incrementBookedCount(
+            connection,
+            eventId
         );
 
         await connection.commit();
@@ -102,7 +101,6 @@ const bookEvent = async (eventId, userId) => {
 
     } catch (error) {
         await connection.rollback();
-
         console.error('Booking error:', error);
 
         return {
@@ -215,9 +213,10 @@ const getUserBookings = async (userId) => {
                 bookingId: b.booking_id,
                 eventId: b.event_id,
                 eventName: b.event_name,
+                eventDescription: b.event_description,
                 eventDate: b.event_date,
                 status: b.status,
-                createdAt: b.created_at
+                createdAt: b.updated_at
             }))
         };
 

@@ -9,6 +9,7 @@ This system is designed with:
 -   Concurrency-safe booking
 -   Transaction management
 -   Rate limiting protection
+-   Basic Authentication
 -   Input validation
 -   Audit logging
 -   Clean layered architecture
@@ -23,6 +24,7 @@ This system is designed with:
 -   Jest + Supertest (Testing)
 -   express-validator (Validation)
 -   express-rate-limit (API Protection)
+-   jsonwebtoken & bcrypt (Authentication)
 
 ------------------------------------------------------------------------
 
@@ -30,10 +32,11 @@ This system is designed with:
 
 The application follows a clean layered architecture:
 
-Routes → Validation → Controller → Service → Database
+Routes => Middleware(Auth) => Validation => Controller => Service => Database
 
 # Responsibilities:
 
+Middleware: Authenticate the user
 Routes: API endpoint definitions Validation: Request validation rules
 Controller: Handles request and response Service: Business logic and
 transaction handling Database: MySQL queries
@@ -46,14 +49,14 @@ clean code organization.
 # API ENDPOINTS
 
 # 1)  Get All Events GET /api/events
-
+header: "Bearer {token}"
 Returns list of available events with seat availability.
 
 ------------------------------------------------------------------------
 
 # 2)  Book Event POST /api/booking/events/:id/book
 
-Request Body: { “userId”: 101 }
+header: "Bearer {token}"
 
 Features: - Transaction-based booking - Row-level locking using SELECT …
 FOR UPDATE - Prevents overselling - Rate limited (5 requests per minute
@@ -63,14 +66,16 @@ per IP)
 
 # 3)  Cancel Booking POST /api/booking/:id/cancel
 
+header: "Bearer {token}"
 -   Restores seat count
 -   Updates booking status
 -   Maintains audit trail
 
 ------------------------------------------------------------------------
 
-# 4)  Get User Bookings GET /api/users/:userId/bookings
+# 4)  Get User Bookings GET /api/bookings/my
 
+header: "Bearer {token}"
 Returns booking history of a user.
 
 ------------------------------------------------------------------------
@@ -145,7 +150,6 @@ Server runs at: http://localhost:5000||PORT
 
 DESIGN ASSUMPTIONS
 
--   Users already exist (no authentication required)
 -   Booking is limited to 1 seat per request
 -   No payment integration included
 -   Rate limiting uses in-memory store (single-instance deployment)
@@ -154,8 +158,7 @@ DESIGN ASSUMPTIONS
 ------------------------------------------------------------------------
 
 FUTURE ENHANCEMENTS
-
--   Authentication and Authorization
+-   Authorization like role base access (Admin, User)
 -   Redis-based distributed rate limiting
 -   Pagination for events
 -   API documentation (Swagger)

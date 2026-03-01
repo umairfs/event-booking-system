@@ -21,9 +21,10 @@ const getBookingForUpdate = async (connection, bookingId) => {
 
 const cancelBooking = async (connection, bookingId) => {
     await connection.query(
-        `UPDATE bookings 
-         SET status = 'CANCELLED'
-         WHERE id = ?`,
+        `UPDATE bookings
+        SET status = 'CANCELLED',
+            updated_at = NOW()
+        WHERE id = ?`,
         [bookingId]
     );
 };
@@ -33,22 +34,45 @@ const getBookingsByUserId = async (userId) => {
         SELECT 
             b.id AS booking_id,
             b.status,
-            b.created_at,
+            b.updated_at,
             e.id AS event_id,
             e.name AS event_name,
+            e.description AS event_description,
             e.event_date
         FROM bookings b
         JOIN events e ON b.event_id = e.id
         WHERE b.user_id = ?
-        ORDER BY b.created_at DESC
+        ORDER BY b.updated_at DESC
     `, [userId]);
 
     return rows;
+};
+
+const getBookingByEventAndUser = async (connection, eventId, userId) => {
+    const [rows] = await connection.execute(
+        `SELECT * FROM bookings 
+         WHERE event_id = ? AND user_id = ?`,
+        [eventId, userId]
+    );
+
+    return rows[0];
+};
+
+const reactivateBooking = async (connection, bookingId) => {
+    await connection.execute(
+        `UPDATE bookings
+         SET status = 'CONFIRMED',
+         updated_at = NOW()
+         WHERE id = ?`,
+        [bookingId]
+    );
 };
 
 module.exports = {
     createBooking,
     getBookingForUpdate,
     cancelBooking,
-    getBookingsByUserId
+    getBookingsByUserId,
+    getBookingByEventAndUser,
+    reactivateBooking
 };
