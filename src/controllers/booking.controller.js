@@ -2,6 +2,7 @@ const bookingService = require('../services/booking.service');
 
 const bookEvent = async (req, res) => {
     const eventId = req.params.id;
+    // const userId = req.user.id;
     const { userId } = req.body;
 
     if (!userId) {
@@ -32,7 +33,7 @@ const cancelBooking = async (req, res) => {
 };
 
 const getUserBookings = async (req, res) => {
-    const { userId } = req.params;
+    const userId = req.user.id;
 
     const result = await bookingService.getUserBookings(userId);
 

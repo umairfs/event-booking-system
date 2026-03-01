@@ -1,7 +1,19 @@
-const { param } = require('express-validator');
+const { param, body } = require('express-validator');
 
-exports.getUserBookingsValidation = [
-    param('userId')
-        .notEmpty().withMessage('User id is required')
-        .isInt().withMessage('User id must be a number')
+const registerValidation = [
+  body("name").notEmpty().withMessage("Name is required"),
+  body("email").isEmail().withMessage("Valid email required"),
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters")
 ];
+
+const loginValidation = [
+  body("email").isEmail().withMessage("Valid email required"),
+  body("password").notEmpty().withMessage("Password is required")
+];
+
+module.exports = {
+  registerValidation,
+  loginValidation
+};

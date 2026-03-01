@@ -5,10 +5,11 @@ const getAllEvents = async () => {
         SELECT 
             id,
             name,
-            total_capacity,
-            booked_count,
-            (total_capacity - booked_count) AS remaining_spots,
-            event_date
+            description,
+            total_capacity  AS totalCapacity,
+            booked_count AS bookedCount,
+            (total_capacity - booked_count) AS remainingSpots,
+            event_date AS eventDate
         FROM events
         ORDER BY event_date ASC
     `);
