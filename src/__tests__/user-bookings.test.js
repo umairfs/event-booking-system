@@ -6,18 +6,37 @@ jest.mock('../services/booking.service', () => ({
     getUserBookings: jest.fn()
 }));
 
+// Mock auth middleware to simulate logged-in user
+jest.mock('../middlewares/auth.middleware', () => {
+    return (req, res, next) => {
+
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized'
+            });
+        }
+
+        req.user = { id: 101 };
+        next();
+    };
+});
+
 const bookingService = require('../services/booking.service');
 
-describe('GET /api/users/:userId/bookings', () => {
+describe('GET /api/bookings/my', () => {
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    it('should return user bookings successfully', async () => {
+    it('should return current user bookings successfully', async () => {
 
         bookingService.getUserBookings.mockResolvedValue({
             status: 200,
+            message: 'Bookings fetched successfully',
             data: [
                 {
                     bookingId: 1,
@@ -31,10 +50,12 @@ describe('GET /api/users/:userId/bookings', () => {
         });
 
         const res = await request(app)
-            .get('/api/users/101/bookings');
+            .get('/api/bookings/my')
+            .set('Authorization', 'Bearer fake-jwt-token'); // simulate token
 
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
+        expect(Array.isArray(res.body.data)).toBe(true);
         expect(res.body.data.length).toBe(1);
         expect(res.body.data[0].eventName).toBe('Music Concert');
     });
@@ -43,26 +64,37 @@ describe('GET /api/users/:userId/bookings', () => {
 
         bookingService.getUserBookings.mockResolvedValue({
             status: 200,
+            message: 'No bookings found',
             data: []
         });
 
         const res = await request(app)
-            .get('/api/users/200/bookings');
+            .get('/api/bookings/my')
+            .set('Authorization', 'Bearer fake-jwt-token');
 
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
         expect(res.body.data.length).toBe(0);
     });
 
-    it('should return 500 if service fails', async () => {
-
-        bookingService.getUserBookings.mockResolvedValue({
-            status: 500,
-            message: 'Internal Server Error'
-        });
+    it('should return 401 if no token provided', async () => {
 
         const res = await request(app)
-            .get('/api/users/101/bookings');
+            .get('/api/bookings/my');
+
+        expect(res.statusCode).toBe(401);
+        expect(res.body.success).toBe(false);
+    });
+
+    it('should return 500 if service throws error', async () => {
+
+        bookingService.getUserBookings.mockRejectedValue(
+            new Error('DB failure')
+        );
+
+        const res = await request(app)
+            .get('/api/bookings/my')
+            .set('Authorization', 'Bearer fake-jwt-token');
 
         expect(res.statusCode).toBe(500);
         expect(res.body.success).toBe(false);

@@ -155,13 +155,7 @@ const cancelEventBooking = async (bookingId) => {
 
             return { status: 400, message: 'Booking already cancelled' };
         }
-
-        //  Lock event row
-        const event = await eventRepository.getEventForUpdate(
-            connection,
-            booking.event_id
-        );
-
+        
         //  Update booking
         await bookingRepository.cancelBooking(connection, bookingId);
 

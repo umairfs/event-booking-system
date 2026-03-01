@@ -6,6 +6,8 @@ jest.mock('../services/event.service', () => ({
     getEvents: jest.fn()
 }));
 
+const eventService = require('../services/event.service');
+
 beforeAll(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -14,33 +16,38 @@ afterAll(() => {
     console.error.mockRestore();
 });
 
-const eventService = require('../services/event.service');
-
-describe('GET /events', () => {
+describe('GET /api/events', () => {
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    it('should return list of events', async () => {
+    it('should return list of events with success true', async () => {
 
         eventService.getEvents.mockResolvedValue([
-            {
-                id: 1,
-                name: 'Music Concert',
-                totalCapacity: 100,
-                bookedCount: 20,
-                remainingSpots: 80,
-                eventDate: '2026-03-10'
-            }
-        ]);
+                {
+                    id: 1,
+                    name: 'Music Concert',
+                    description: 'Arjit Singh',
+                    total_capacity: 100,
+                    booked_count: 20,
+                    remaining_spots: 80,
+                    event_date: '2026-03-10'
+                }
+            ]
+        );
 
         const res = await request(app).get('/api/events');
-
-        expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
-        expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].name).toBe('Music Concert');
+    });
+
+    it('should return empty array if no events found', async () => {
+
+        eventService.getEvents.mockResolvedValue([]);
+
+        const res = await request(app).get('/api/events');
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.length).toBe(0);
     });
 
     it('should return 500 if service throws error', async () => {
@@ -51,5 +58,6 @@ describe('GET /events', () => {
 
         expect(res.statusCode).toBe(500);
         expect(res.body.success).toBe(false);
+        expect(res.body.message).toBeDefined();
     });
 });

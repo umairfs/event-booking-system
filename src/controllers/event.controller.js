@@ -5,6 +5,7 @@ const getEvents = async (req, res) => {
         const events = await eventService.getEvents();
         res.status(200).json({
             success: true,
+            message: "Successfull fetched event list",
             data: events
         });
     } catch (error) {
